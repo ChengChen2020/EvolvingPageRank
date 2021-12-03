@@ -65,14 +65,15 @@ def get_nodes_to_probe(graph, strategy, num=10):
         return graph.return_top_k(num)
 
 
-def evolve_graph(evo_graph, target_graph, strategy, num):
+def evolve_graph(evo_graph, target_graph, strategy, num, damping_factor, iterations):
     # probing nodes from evolving graph
     probing_nodes = get_nodes_to_probe(evo_graph, strategy, num)
     # print("len: ", len(probing_nodes))
 
     for pn in probing_nodes:
 
-        assert pn in evo_graph.nodes
+        if pn not in evo_graph.nodes:
+            continue
 
         if pn.name in target_graph.node_names:
             evo_graph.add_node(target_graph.find(pn.name))
@@ -80,6 +81,14 @@ def evolve_graph(evo_graph, target_graph, strategy, num):
             evo_graph.delete_node(pn)
 
     evo_graph.clear_pagerank()
+    PageRank(evo_graph, damping_factor, iterations)
+
+    if strategy == 'pr':
+        for node in evo_graph.nodes:
+            if node in probing_nodes:
+                node.priority = 0.0
+            else:
+                node.priority += node.pagerank
 
 
 def PageRank_one_iter(graph, d):

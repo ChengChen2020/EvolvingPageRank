@@ -1,7 +1,10 @@
+import sys
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+
+sys.setrecursionlimit(10000)
 
 from utils import *
 
@@ -97,7 +100,7 @@ def main():
     print('Parsing as-733 done')
 
     start = time.time()
-    graphs = [build_graph(as_lines[i], 'as-733') for i in range(1, 30)]
+    graphs = [build_graph(as_lines[i], 'as-733') for i in range(1, 35)]
     print('time: ', time.time() - start)
 
     for graph in graphs:
@@ -109,11 +112,11 @@ def main():
     for stgy in ['rd', 'rr', 'wr', 'pr']:
 
         evo_graph = build_graph(as_lines[0], 'as-733')
+        PageRank(evo_graph, damping_factor, iterations)
 
         for graph in graphs:
-            evolve_graph(evo_graph, graph, stgy, 10)
-            PageRank(evo_graph, damping_factor, iterations)
-            print(stgy, len(evo_graph.nodes), l1_error(evo_graph, graph))
+            evolve_graph(evo_graph, graph, stgy, 100, damping_factor, iterations)
+            print(stgy, len(evo_graph.nodes), len(graph.nodes), l1_error(evo_graph, graph))
             err[stgy].append(l1_error(evo_graph, graph))
 
         # print(stgy, err)
@@ -122,7 +125,6 @@ def main():
     plt.title("Average L1 error")
     for stgy in ['rd', 'rr', 'wr', 'pr']:
         plt.plot(err[stgy], 'o-', color=color[stgy], label=stgy)
-    plt.xticks(np.arange(err['rd']))
     plt.legend(loc="best")
     plt.show()
 

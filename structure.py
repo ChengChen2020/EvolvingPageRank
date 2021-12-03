@@ -7,6 +7,7 @@ class Node:
         self.children = []
         self.parents = []
         self.pagerank = 1.0
+        self.priority = 0.0
         self.new_pagerank = self.pagerank
 
     def link_child(self, new_child):
@@ -62,11 +63,17 @@ class Graph:
     def add_node(self, node):
         for child in node.children:
             if child.name not in self.node_names:
-                self.add_node(child)
+                try:
+                    self.add_node(child)
+                except:
+                    pass
             self.add_edge(node.name, child.name)
         for parent in node.parents:
             if parent.name not in self.node_names:
-                self.add_node(parent)
+                try:
+                    self.add_node(parent)
+                except:
+                    pass
             self.add_edge(parent.name, node.name)
 
     def add_edge(self, parent, child):
@@ -84,8 +91,8 @@ class Graph:
             print(f'{node.name} links to {[child.name for child in node.children]}')
 
     def return_top_k(self, k):
-        # Sort nodes according to pagerank value
-        return sorted(self.nodes, key=lambda node: node.pagerank, reverse=True)[:k]
+        # Sort nodes according to priority
+        return sorted(self.nodes, key=lambda node: node.priority, reverse=True)[:k]
 
     def return_rr_k(self, k):
         # Return k nodes round-robin
