@@ -7,6 +7,7 @@ class Node:
         self.children = []
         self.parents = []
         self.pagerank = 1.0
+        self.new_pagerank = self.pagerank
 
     def link_child(self, new_child):
         for child in self.children:
@@ -24,11 +25,11 @@ class Node:
         in_neighbors = self.parents
         pagerank_sum = sum((node.pagerank / len(node.children)) for node in in_neighbors)
         random_jumping = d / n
-        self.pagerank = random_jumping + (1-d) * pagerank_sum
+        self.new_pagerank = random_jumping + (1 - d) * pagerank_sum
 
 
 class Graph:
-    def __init__(self, as_name):
+    def __init__(self, as_name=""):
         self.as_name = as_name
         # index for round-robin
         self.index = 0
@@ -51,8 +52,6 @@ class Graph:
     def delete_node(self, node):
         assert node in self.nodes
 
-        # TODO
-        # recursively delete nodes
         self.nodes.remove(node)
         self.node_names.remove(node.name)
         for child in node.children:
@@ -61,16 +60,14 @@ class Graph:
             parent.children.remove(node)
 
     def add_node(self, node):
-        # TODO
-        # recursively add new nodes
         for child in node.children:
-
+            if child.name not in self.node_names:
+                self.add_node(child)
             self.add_edge(node.name, child.name)
-
-            self.add_node(child)
         for parent in node.parents:
+            if parent.name not in self.node_names:
+                self.add_node(parent)
             self.add_edge(parent.name, node.name)
-            self.add_node(parent)
 
     def add_edge(self, parent, child):
         if self.as_name == "as-733":
@@ -92,15 +89,24 @@ class Graph:
 
     def return_rr_k(self, k):
         # Return k nodes round-robin
-        self.index += 10
+        if k >= len(self.nodes):
+            return self.nodes
+        cur_index = self.index
+        self.index += k
         self.index %= len(self.nodes)
-        return self.nodes[self.index - 10: self.index - 10 + k]
+        if cur_index + k < len(self.nodes):
+            return self.nodes[cur_index: cur_index + k]
+        return self.nodes[:cur_index + k - len(self.nodes)] + self.nodes[cur_index:]
 
     def normalize_pagerank(self):
         pagerank_sum = sum(node.pagerank for node in self.nodes)
 
         for node in self.nodes:
             node.pagerank /= pagerank_sum
+
+    def update_pagerank(self):
+        for node in self.nodes:
+            node.pagerank = node.new_pagerank
 
     def clear_pagerank(self):
         for node in self.nodes:

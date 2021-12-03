@@ -59,20 +59,16 @@ def get_nodes_to_probe(graph, strategy, num=10):
         return graph.return_rr_k(num)
     elif strategy == 'wr':
         # Weighted Random
-        # PageRank(graph, damping_factor, iterations)
         return random.choices(graph.nodes, weights=graph.get_pagerank_list(), k=num)
     else:
         # Priority Probing
-        # PageRank(graph, damping_factor, iterations)
         return graph.return_top_k(num)
 
 
-def evolve_graph(evo_graph, target_graph, strategy):
+def evolve_graph(evo_graph, target_graph, strategy, num):
     # probing nodes from evolving graph
-    probing_nodes = get_nodes_to_probe(evo_graph, strategy)
-
-    # for node in probing_nodes:
-    #     print(node.pagerank)
+    probing_nodes = get_nodes_to_probe(evo_graph, strategy, num)
+    # print("len: ", len(probing_nodes))
 
     for pn in probing_nodes:
 
@@ -90,6 +86,7 @@ def PageRank_one_iter(graph, d):
     node_list = graph.nodes
     for node in node_list:
         node.update_pagerank(d, len(graph.nodes))
+    graph.update_pagerank()
     graph.normalize_pagerank()
 
 
@@ -100,4 +97,5 @@ def PageRank(graph, d, iteration=100):
 
 def l1_error(evo_graph, true_graph):
     inter_nodes = list(set(evo_graph.node_names).intersection(set(true_graph.node_names)))
-    return sum([abs(evo_graph.find(name).pagerank - true_graph.find(name).pagerank) for name in inter_nodes])
+    import statistics
+    return statistics.mean([abs(evo_graph.find(name).pagerank - true_graph.find(name).pagerank) for name in inter_nodes])
