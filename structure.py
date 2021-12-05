@@ -60,20 +60,14 @@ class Graph:
         for parent in node.parents:
             parent.children.remove(node)
 
-    def add_node(self, node):
+    def add_node(self, node, depth=10):
         for child in node.children:
-            if child.name not in self.node_names:
-                try:
-                    self.add_node(child)
-                except:
-                    pass
+            if child.name not in self.node_names and depth > 0:
+                self.add_node(child, depth - 1)
             self.add_edge(node.name, child.name)
         for parent in node.parents:
-            if parent.name not in self.node_names:
-                try:
-                    self.add_node(parent)
-                except:
-                    pass
+            if parent.name not in self.node_names and depth > 0:
+                self.add_node(parent, depth - 1)
             self.add_edge(parent.name, node.name)
 
     def add_edge(self, parent, child):
