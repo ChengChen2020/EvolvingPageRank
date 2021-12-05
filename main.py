@@ -1,5 +1,4 @@
 import sys
-import time
 import logging
 import argparse
 from tqdm import tqdm
@@ -102,10 +101,13 @@ def main():
         # undirected with loop
         dsroot = "../data/as-733/"
         skip_lines = 2
-    else:
+    elif opt.dataset == 'as-caida':
         # directed without loop
         dsroot = "../data/as-caida/"
         skip_lines = 6
+    else:
+        logger.info('Invaild dataset')
+        return None
 
     graphnames = sorted([f for f in os.listdir(dsroot) if os.path.isfile(os.path.join(dsroot, f))])
 
@@ -134,7 +136,7 @@ def main():
             evolve_graph(evo_graph, graphs[i], stgy, opt.probing_nodes_num, opt.damping_factor, opt.iterations)
             error = l1_error(evo_graph, graphs[i])
             evo_bar.set_description(
-                'Stratergy: [{}] L1 error: {}'.format(stgy, error))
+                'Stratergy: [{}] L1 error: {:e}'.format(stgy, error))
             err[stgy].append(error)
 
     plt.figure(figsize=(12, 6))
