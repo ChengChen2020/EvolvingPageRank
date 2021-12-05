@@ -61,6 +61,7 @@ class Graph:
             parent.children.remove(node)
 
     def add_node(self, node, depth=10):
+        # print('adding', node.name)
         for child in node.children:
             if child.name not in self.node_names and depth > 0:
                 self.add_node(child, depth - 1)
