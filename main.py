@@ -13,8 +13,10 @@ sys.setrecursionlimit(10000)
 # https://github.com/chonyy/PageRank-HITS-SimRank
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--dataset', type=str, default='as-733', help='learning rate')
 parser.add_argument('--damping_factor', type=float, default=0.15, help='damping factor')
 parser.add_argument('--iterations', type=int, default=500, help='iterations')
+parser.add_argument('--sequence_length', type=int, default=100, help='iterations')
 parser.add_argument('--probing_nodes_num', type=int, default=10, help='number of probing nodes')
 parser.add_argument('--fig_path', type=str, default='analysis.png', help='learning rate')
 opt = parser.parse_args()
@@ -96,28 +98,24 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
-    # undirected with loop
-    dsroot_1 = "../data/as-733/"
-    # directed without loop
-    dsroot_2 = "../data/as-caida/"
+    if opt.dataset == 'as-733':
+        # undirected with loop
+        dsroot = "../data/as-733/"
+        skip_lines = 2
+    else:
+        # directed without loop
+        dsroot = "../data/as-caida/"
+        skip_lines = 6
 
-    graphnames_1 = sorted([f for f in os.listdir(dsroot_1) if os.path.isfile(os.path.join(dsroot_1, f))])
-    graphnames_2 = sorted([f for f in os.listdir(dsroot_2) if os.path.isfile(os.path.join(dsroot_2, f))])
+    graphnames = sorted([f for f in os.listdir(dsroot) if os.path.isfile(os.path.join(dsroot, f))])
 
-    assert (len(graphnames_1) == 733)
-    assert (len(graphnames_2) == 122)
-
-    # Parse CAIDA
-    # caida_nodes, caida_edges, caida_lines = parse_as(dsroot_2, graphnames_2, skip_lines=6)
-    # Parse as-733
-    start = time.time()
-    logger.info('Parsing as-733')
-    as_nodes, as_edges, as_lines = parse_as(dsroot_1, graphnames_1, skip_lines=2)
-    logger.info('Parsing as-733 done')
+    logger.info('Parsing {}'.format(opt.dataset))
+    as_nodes, as_edges, as_lines = parse_as(dsroot, graphnames, skip_lines=skip_lines)
+    logger.info('Parsing {} done'.format(opt.dataset))
 
     graphs = []
-    for i in tqdm(range(1, 100)):
-        graph = build_graph(as_lines[i], 'as-733')
+    for i in tqdm(range(1, opt.sequence_length)):
+        graph = build_graph(as_lines[i], opt.dataset)
         PageRank(graph, opt.damping_factor, opt.iterations)
         graphs.append(graph)
     logger.info('Building graphs done')
@@ -126,25 +124,25 @@ def main():
     color = {'rd': 'b', 'rr': 'r', 'wr': 'g', 'pr': 'y'}
 
     for stgy in ['rd', 'rr', 'wr', 'pr']:
-        evo_graph = build_graph(as_lines[0], 'as-733')
+        evo_graph = build_graph(as_lines[0], opt.dataset)
         PageRank(evo_graph, opt.damping_factor, opt.iterations)
 
         logger.info('Sum of page rank: {}'.format(sum(evo_graph.get_pagerank_list())))
 
-        for graph in graphs:
-            evolve_graph(evo_graph, graph, stgy, opt.probing_nodes_num, opt.damping_factor, opt.iterations)
-            print(stgy, len(evo_graph.nodes), len(graph.nodes), l1_error(evo_graph, graph))
-            err[stgy].append(l1_error(evo_graph, graph))
+        evo_bar = tqdm(range(len(graphs)))
+        for i in evo_bar:
+            evolve_graph(evo_graph, graphs[i], stgy, opt.probing_nodes_num, opt.damping_factor, opt.iterations)
+            error = l1_error(evo_graph, graphs[i])
+            evo_bar.set_description(
+                'Stratergy: [{}] L1 error: {}'.format(stgy, error))
+            err[stgy].append(error)
 
     plt.figure(figsize=(12, 6))
     plt.title("Average L1 error")
     for stgy in ['rd', 'rr', 'wr', 'pr']:
         plt.plot(err[stgy], 'o-', color=color[stgy], label=stgy)
     plt.legend(loc="best")
-    # plt.show()
     plt.savefig(opt.fig_path)
-
-    print('time: ', time.time() - start)
 
 
 if __name__ == '__main__':
