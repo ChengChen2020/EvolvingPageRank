@@ -7,17 +7,17 @@ from collections import defaultdict
 
 from utils import *
 
-sys.setrecursionlimit(10000)
+# sys.setrecursionlimit(10000)
 
 # https://github.com/chonyy/PageRank-HITS-SimRank
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='as-733', help='learning rate')
+parser.add_argument('--dataset', type=str, default='as-733', help='dataset(as-733/as-caida)')
 parser.add_argument('--damping_factor', type=float, default=0.15, help='damping factor')
 parser.add_argument('--iterations', type=int, default=500, help='iterations')
-parser.add_argument('--sequence_length', type=int, default=100, help='iterations')
+parser.add_argument('--sequence_length', type=int, default=100, help='graph sequence length')
 parser.add_argument('--probing_nodes_num', type=int, default=10, help='number of probing nodes')
-parser.add_argument('--fig_path', type=str, default='analysis.png', help='learning rate')
+parser.add_argument('--fig_path', type=str, default='analysis.png', help='log fig save path')
 opt = parser.parse_args()
 
 
