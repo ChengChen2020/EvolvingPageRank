@@ -1,16 +1,18 @@
 import re
 import os
 import random
-from copy import deepcopy
+# import numpy as np
+# import matplotlib.pyplot as plt
 
 from structure import Graph
 
 
-def parse_as(file_root, file_names, skip_lines=2):
-    evo_nodes = []
-    evo_edges = []
-    evo_lines = []
-    for graph_name in sorted(file_names):
+def parse_as(file_root, file_names, skip_lines=2, num=100, thresh=500):
+    raw_evo_nodes = []
+    raw_evo_edges = []
+    raw_evo_lines = []
+
+    for graph_name in sorted(file_names)[:num]:
 
         with open(os.path.join(file_root, graph_name)) as g:
             for _ in range(skip_lines):
@@ -18,19 +20,34 @@ def parse_as(file_root, file_names, skip_lines=2):
 
             n, e = re.findall('[0-9]+', g.readline().strip())
 
-            evo_nodes.append(int(n))
-            evo_edges.append(int(e))
+            raw_evo_nodes.append(int(n))
+            raw_evo_edges.append(int(e))
 
             g.readline()
             lines = g.readlines()
 
-            evo_lines.append(lines)
+            raw_evo_lines.append(lines)
 
-    #     plt.figure(figsize=(12, 6))
-    #     plt.plot(np.arange(len(file_names)), evo_nodes, label="nodes")
-    #     plt.plot(np.arange(len(file_names)), evo_edges, label="edges")
-    #     plt.locator_params(axis="y", nbins=10)
-    #     plt.legend(loc="best")
+    # print(len(raw_evo_lines))
+
+    evo_nodes = []
+    evo_edges = []
+    evo_lines = []
+
+    prev = raw_evo_nodes[0]
+    for i in range(1, len(raw_evo_nodes)):
+        if abs(raw_evo_nodes[i] - prev) < thresh:
+            evo_nodes.append(raw_evo_nodes[i])
+            evo_edges.append(raw_evo_edges[i])
+            evo_lines.append(raw_evo_lines[i])
+            prev = raw_evo_nodes[i]
+
+    # plt.figure(figsize=(18, 6))
+    # plt.plot(np.arange(len(evo_nodes)), evo_nodes, '*-', color='g', label="nodes")
+    # # plt.plot(np.arange(num), evo_edges, label="edges")
+    # plt.locator_params(axis="y", nbins=10)
+    # plt.legend(loc="best")
+    # plt.savefig(file_root.split('/')[-1])
 
     return evo_nodes, evo_edges, evo_lines
 

@@ -1,6 +1,7 @@
-import sys
+# import sys
 import logging
 import argparse
+import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from collections import defaultdict
@@ -99,24 +100,28 @@ def main():
 
     if opt.dataset == 'as-733':
         # undirected with loop
-        dsroot = "../data/as-733/"
+        dsroot = "../data/as-733"
         skip_lines = 2
+        thresh = 100
     elif opt.dataset == 'as-caida':
         # directed without loop
-        dsroot = "../data/as-caida/"
+        dsroot = "../data/as-caida"
         skip_lines = 6
+        thresh = 500
     else:
         logger.info('Invaild dataset')
         return None
 
-    graphnames = sorted([f for f in os.listdir(dsroot) if os.path.isfile(os.path.join(dsroot, f))])
+    graphnames = [f for f in os.listdir(dsroot) if os.path.isfile(os.path.join(dsroot, f))]
 
     logger.info('Parsing {}'.format(opt.dataset))
-    as_nodes, as_edges, as_lines = parse_as(dsroot, graphnames, skip_lines=skip_lines)
+    as_nodes, as_edges, as_lines = parse_as(dsroot, graphnames, skip_lines=skip_lines, num=opt.sequence_length, thresh=thresh)
+    logger.info('Dataset gradient average: {:.3f}'.format(np.mean(list(map(abs, np.gradient(as_nodes))))))
+    logger.info('Dataset sequence length : {}'.format(len(as_lines)))
     logger.info('Parsing {} done'.format(opt.dataset))
 
     graphs = []
-    for i in tqdm(range(1, opt.sequence_length)):
+    for i in tqdm(range(1, len(as_lines))):
         graph = build_graph(as_lines[i], opt.dataset)
         PageRank(graph, opt.damping_factor, opt.iterations)
         graphs.append(graph)
