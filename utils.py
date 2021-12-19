@@ -7,26 +7,28 @@ import random
 from structure import Graph
 
 
-def parse_nodes_constant(as_lines, nodes):
+def parse_nodes_constant(all_edges, nodes):
+    # Only get edges contain nodes
 
-    as_evo_lines = []
+    filtered_all_edges = []
 
-    for lines in as_lines:
-        evo_lines = []
-        for line in lines:
-            FromNodeId, ToNodeId = re.findall('[0-9]+', line.strip())[:2]
+    for edges in all_edges:
+        filtered_edges = []
+        for e in edges:
+            FromNodeId, ToNodeId = re.findall('[0-9]+', e.strip())[:2]
             if FromNodeId in nodes and ToNodeId in nodes:
-                evo_lines.append(line)
-        as_evo_lines.append(evo_lines)
+                filtered_edges.append(e)
+        filtered_all_edges.append(filtered_edges)
 
-    return as_evo_lines
+    return filtered_all_edges
 
 
-def get_nodes(lines):
+def get_nodes(edges):
+    # Get common nodes
     nodes = set()
 
-    for line in lines:
-        FromNodeId, ToNodeId = re.findall('[0-9]+', line.strip())[:2]
+    for e in edges:
+        FromNodeId, ToNodeId = re.findall('[0-9]+', e.strip())[:2]
         nodes.add(FromNodeId)
         nodes.add(ToNodeId)
 
@@ -58,6 +60,8 @@ def parse_as(file_root, file_names, skip_lines=2, num=100, thresh=500):
     evo_edges = []
     evo_lines = []
 
+    # Prune abrupt changes
+    # Smooth the sequence
     prev = raw_evo_nodes[0]
     for i in range(1, len(raw_evo_nodes)):
         if abs(raw_evo_nodes[i] - prev) < thresh:
@@ -93,13 +97,13 @@ def get_nodes_to_probe(graph, strategy, num=10):
         print("No such strategy")
         assert False
     if strategy == 'rd':
-        # Random
+        # Random Probing
         return random.choices(graph.nodes, k=num)
     elif strategy == 'rr':
-        # Round Robin
+        # Round-Robin Probing
         return graph.return_rr_k(num)
     elif strategy == 'wr':
-        # Weighted Random
+        # Proportional Probing
         return random.choices(graph.nodes, weights=graph.get_pagerank_list(), k=num)
     else:
         # Priority Probing
@@ -110,7 +114,6 @@ def evolve_graph(evo_graph, target_graph, strategy, num, damping_factor, iterati
     # Probing nodes from evolving graph
     probing_nodes = get_nodes_to_probe(evo_graph, strategy, num)
     assert len(probing_nodes) == num
-    # print("len: ", len(probing_nodes))
 
     for pn in probing_nodes:
 
@@ -124,6 +127,7 @@ def evolve_graph(evo_graph, target_graph, strategy, num, damping_factor, iterati
 
     PageRank(evo_graph, damping_factor, iterations)
 
+    # Priority
     if strategy == 'pr':
         for node in evo_graph.nodes:
             if node in probing_nodes:

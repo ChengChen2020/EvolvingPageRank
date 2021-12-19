@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 from utils import *
+from unit_test import pg_test, evolve_test
 
 # sys.setrecursionlimit(10000)
 
@@ -22,78 +23,8 @@ parser.add_argument('--fig_path', type=str, default='analysis.png', help='log fi
 opt = parser.parse_args()
 
 
-def test():
-    # t = Graph()
-    # t.add_edge('D', 'A')
-    # t.add_edge('D', 'B')
-    # t.add_edge('C', 'B')
-    # t.add_edge('B', 'C')
-    # t.add_edge('F', 'E')
-    # t.add_edge('E', 'F')
-    # t.add_edge('E', 'D')
-    # t.add_edge('E', 'B')
-    # t.add_edge('F', 'B')
-    # t.add_edge('G', 'B')
-    # t.add_edge('G', 'E')
-    # t.add_edge('H', 'B')
-    # t.add_edge('H', 'E')
-    # t.add_edge('I', 'B')
-    # t.add_edge('I', 'E')
-    # t.add_edge('J', 'E')
-    # t.add_edge('K', 'E')
-    # # t.display()
-    # PageRank(t, damping_factor, iterations)
-    # print(t.get_pagerank_list())
-
-    # h = Graph()
-    # h.add_edge(1, 3)
-    # h.add_edge(3, 1)
-    # h.add_edge(3, 2)
-    # h.add_edge(2, 3)
-    # h.add_edge(3, 4)
-    # h.add_edge(1, 4)
-    # h.add_edge(4, 2)
-    # PageRank(h, damping_factor, 10)
-    # print(h.get_pagerank_list())
-
-    g = Graph()
-    g.add_edge(1, 2)
-    g.add_edge(2, 3)
-    random.shuffle(g.nodes)
-
-    PageRank(g, opt.damping_factor, opt.iterations)
-    # g.display()
-    print(g.get_pagerank_list())
-    # [2          1          3]
-    # [0.28674488 0.10375129 0.60950383]
-
-    g2 = Graph()
-    g2.add_edge(1, 2)
-    g2.add_edge(2, 3)
-    g2.add_edge(2, 4)
-    g2.add_edge(4, 3)
-    g2.add_edge(4, 3)
-    g2.add_edge(4, 1)
-    g2.add_edge(3, 5)
-    random.shuffle(g2.nodes)
-
-    evolve_graph(g2, g, 'rr', 2, opt.damping_factor, opt.iterations)
-
-    g.display()
-    print()
-    g2.display()
-
-    PageRank(g, opt.damping_factor, opt.iterations)
-    print(g.get_pagerank_list())
-    PageRank(g2, opt.damping_factor, opt.iterations)
-    print(g2.get_pagerank_list())
-    # [5          2          1          4          3]
-    # [0.30867546 0.18550762 0.12568849 0.14755548 0.23257295]
-
-    print(l1_error(g, g2))
-
-
-def probing(logger, as_lines):
+def probing_main(logger, as_lines):
+    # Build graph sequence
     graphs = []
     for i in tqdm(range(1, len(as_lines))):
         graph = build_graph(as_lines[i], opt.dataset)
@@ -104,7 +35,8 @@ def probing(logger, as_lines):
 
     edge_nums = [graph.edges for graph in graphs]
     # node_nums = [len(graph.nodes) for graph in graphs]
-    logger.info('Edges gradient average with nodes fixed: {:.3f}'.format(np.mean(list(map(abs, np.gradient(edge_nums))))))
+    logger.info(
+        'Edges gradient average with nodes fixed: {:.3f}'.format(np.mean(list(map(abs, np.gradient(edge_nums))))))
 
     plt.figure(figsize=(18, 6))
     plt.plot(np.arange(len(graphs)), edge_nums, '*-', color='r', label="edges")
@@ -116,18 +48,23 @@ def probing(logger, as_lines):
     err = defaultdict(list)
     color = {'rd': 'b', 'rr': 'r', 'wr': 'g', 'pr': 'y'}
 
+    # Evaluating four algorithms
+    # 'rd' = Random Probing
+    # 'rr' = Round-Robin Probing
+    # 'wr' = Proportional Probing
+    # 'pr' = Priority Probing
     for stgy in ['rd', 'rr', 'wr', 'pr']:
+        # Build initial graph
         evo_graph = build_graph(as_lines[0], opt.dataset)
         # print(len(evo_graph.nodes))
         PageRank(evo_graph, opt.damping_factor, opt.iterations)
-        # evo_graph.init_priority()
 
         logger.info('Sum of page rank: {}'.format(sum(evo_graph.get_pagerank_list())))
 
         evo_bar = tqdm(range(len(graphs)))
         for i in evo_bar:
-            # print(len(evo_graph.nodes))
-            evolve_graph(evo_graph, graphs[i], stgy, opt.probing_nodes_num, opt.damping_factor, opt.iterations)
+            evolve_graph(evo_graph, graphs[i],
+                         stgy, opt.probing_nodes_num, opt.damping_factor, opt.iterations)
             error = l1_error(evo_graph, graphs[i])
             evo_bar.set_description(
                 'Stratergy: [{}] L1 error: {:e}'.format(stgy, error))
@@ -147,15 +84,13 @@ def main():
     logger.setLevel(logging.INFO)
 
     if opt.dataset == 'as-733':
-        # undirected with loop
+        # Undirect with loop
         dsroot = "../data/as-733"
-        skip_lines = 2
-        thresh = 100
+        skip_lines, thresh = 2, 100
     elif opt.dataset == 'as-caida':
-        # directed without loop
+        # Direct without loop
         dsroot = "../data/as-caida"
-        skip_lines = 6
-        thresh = 500
+        skip_lines, thresh = 6, 500
     else:
         logger.info('Invaild dataset')
         return None
@@ -163,27 +98,24 @@ def main():
     graphnames = [f for f in os.listdir(dsroot) if os.path.isfile(os.path.join(dsroot, f))]
 
     logger.info('Parsing {}'.format(opt.dataset))
-    as_nodes, as_edges, as_lines = parse_as(dsroot, graphnames, skip_lines=skip_lines, num=opt.sequence_length, thresh=thresh)
-    logger.info('Nodes gradient average: {:.3f}'.format(np.mean(list(map(abs, np.gradient(as_nodes))))))
-    logger.info('Edges gradient average: {:.3f}'.format(np.mean(list(map(abs, np.gradient(as_edges))))))
-    logger.info('Dataset sequence length : {}'.format(len(as_lines)))
+    as_node_nums, as_edge_nums, as_edges = parse_as(dsroot, graphnames, skip_lines=skip_lines, num=opt.sequence_length,
+                                                    thresh=thresh)
+    logger.info('Nodes gradient average: {:.3f}'.format(np.mean(list(map(abs, np.gradient(as_node_nums))))))
+    logger.info('Edges gradient average: {:.3f}'.format(np.mean(list(map(abs, np.gradient(as_edge_nums))))))
+    logger.info('Dataset sequence length : {}'.format(len(as_edges)))
     logger.info('Parsing {} done'.format(opt.dataset))
 
-    o_nodes = get_nodes(as_lines[0])
-    for lines in as_lines[1:]:
-        o_nodes &= get_nodes(lines)
-
-    as_evo_lines = parse_nodes_constant(as_lines, o_nodes)
-
-    logger.info('Static nodes number: {}'.format(len(o_nodes)))
-
-    # for i in tqdm(range(len(as_evo_lines))):
-    #     graph = build_graph(as_evo_lines[i], opt.dataset)
-    #     o_nodes &= set(graph.node_names)
-
-    probing(logger, as_evo_lines)
+    # Get common nodes
+    common_nodes = get_nodes(as_edges[0])
+    for lines in as_edges[1:]:
+        common_nodes &= get_nodes(lines)
+    # Fix nodes number
+    as_fix_edges = parse_nodes_constant(as_edges, common_nodes)
+    logger.info('Fix nodes number: {}'.format(len(common_nodes)))
+    probing_main(logger, as_fix_edges)
 
 
 if __name__ == '__main__':
-    # test()
+    # pg_test()
+    # evolve_test()
     main()
