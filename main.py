@@ -9,8 +9,6 @@ from collections import defaultdict
 from utils import *
 from unit_test import pg_test, evolve_test
 
-# sys.setrecursionlimit(10000)
-
 # https://github.com/chonyy/PageRank-HITS-SimRank
 
 parser = argparse.ArgumentParser()
@@ -23,39 +21,29 @@ parser.add_argument('--fig_path', type=str, default='analysis.png', help='log fi
 opt = parser.parse_args()
 
 
-def probing_main(logger, as_lines):
+def probing_main(logger, as_edges):
     # Build graph sequence
     graphs = []
-    for i in tqdm(range(1, len(as_lines))):
-        graph = build_graph(as_lines[i], opt.dataset)
+    for i in tqdm(range(1, len(as_edges))):
+        graph = build_graph(as_edges[i], opt.dataset)
         # print(len(graph.nodes))
         PageRank(graph, opt.damping_factor, opt.iterations)
         graphs.append(graph)
     logger.info('Building graphs done')
 
-    edge_nums = [graph.edges for graph in graphs]
-    # node_nums = [len(graph.nodes) for graph in graphs]
-    logger.info(
-        'Edges gradient average with nodes fixed: {:.3f}'.format(np.mean(list(map(abs, np.gradient(edge_nums))))))
-
-    plt.figure(figsize=(18, 6))
-    plt.plot(np.arange(len(graphs)), edge_nums, '*-', color='r', label="edges")
-    # plt.plot(np.arange(len(graphs)), node_nums, 'o-', color='b', label="nodes")
-    plt.locator_params(axis="y", nbins=10)
-    plt.legend(loc="best")
-    plt.savefig('edge_statistics.png')
-
     err = defaultdict(list)
     color = {'rd': 'b', 'rr': 'r', 'wr': 'g', 'pr': 'y'}
 
-    # Evaluating four algorithms
-    # 'rd' = Random Probing
-    # 'rr' = Round-Robin Probing
-    # 'wr' = Proportional Probing
-    # 'pr' = Priority Probing
+    '''
+        Evaluating four algorithms
+        rd = Random Probing
+        rr = Round-Robin Probing
+        wr = Proportional Probing
+        pr = Priority Probing
+    '''
     for stgy in ['rd', 'rr', 'wr', 'pr']:
         # Build initial graph
-        evo_graph = build_graph(as_lines[0], opt.dataset)
+        evo_graph = build_graph(as_edges[0], opt.dataset)
         # print(len(evo_graph.nodes))
         PageRank(evo_graph, opt.damping_factor, opt.iterations)
 
@@ -84,11 +72,11 @@ def main():
     logger.setLevel(logging.INFO)
 
     if opt.dataset == 'as-733':
-        # Undirect with loop
+        # Undirected with loop
         dsroot = "../data/as-733"
         skip_lines, thresh = 2, 100
     elif opt.dataset == 'as-caida':
-        # Direct without loop
+        # Directed without loop
         dsroot = "../data/as-caida"
         skip_lines, thresh = 6, 500
     else:
@@ -102,9 +90,10 @@ def main():
                                                     thresh=thresh)
     logger.info('Nodes gradient average: {:.3f}'.format(np.mean(list(map(abs, np.gradient(as_node_nums))))))
     logger.info('Edges gradient average: {:.3f}'.format(np.mean(list(map(abs, np.gradient(as_edge_nums))))))
-    logger.info('Dataset sequence length : {}'.format(len(as_edges)))
+    logger.info('Dataset sequence length: {}'.format(len(as_edges)))
     logger.info('Parsing {} done'.format(opt.dataset))
 
+    '''Nodes do not change'''
     # Get common nodes
     common_nodes = get_nodes(as_edges[0])
     for lines in as_edges[1:]:
@@ -113,6 +102,16 @@ def main():
     as_fix_edges = parse_nodes_constant(as_edges, common_nodes)
     logger.info('Fix nodes number: {}'.format(len(common_nodes)))
     probing_main(logger, as_fix_edges)
+
+    # plt.figure(figsize=(12, 6))
+    # plt.plot(np.arange(len(as_edge_nums)), as_edge_nums, '*-', color='r', label="edges")
+    # plt.plot(np.arange(len(as_node_nums)), as_node_nums, 'o-', color='b', label="nodes")
+    # plt.locator_params(axis="y", nbins=10)
+    # plt.legend(loc="best")
+    # plt.savefig('caida_stat.png')
+
+    '''Nodes change'''
+    # probing_main(logger, as_edges)
 
 
 if __name__ == '__main__':

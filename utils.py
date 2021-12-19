@@ -104,6 +104,7 @@ def get_nodes_to_probe(graph, strategy, num=10):
         return graph.return_rr_k(num)
     elif strategy == 'wr':
         # Proportional Probing
+        PageRank(graph, 0.15, 500)
         return random.choices(graph.nodes, weights=graph.get_pagerank_list(), k=num)
     else:
         # Priority Probing
@@ -152,7 +153,6 @@ def PageRank(graph, d, iteration=100):
 
 
 def l1_error(evo_graph, true_graph):
-    # assert evo_graph.node_names.sort() == true_graph.node_names.sort()
     inter_nodes = list(set(evo_graph.node_names).intersection(set(true_graph.node_names)))
     import statistics
     return statistics.mean([abs(evo_graph.find(name).pagerank - true_graph.find(name).pagerank) for name in inter_nodes])
