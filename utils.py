@@ -7,6 +7,32 @@ import random
 from structure import Graph
 
 
+def parse_nodes_constant(as_lines, nodes):
+
+    as_evo_lines = []
+
+    for lines in as_lines:
+        evo_lines = []
+        for line in lines:
+            FromNodeId, ToNodeId = re.findall('[0-9]+', line.strip())[:2]
+            if FromNodeId in nodes and ToNodeId in nodes:
+                evo_lines.append(line)
+        as_evo_lines.append(evo_lines)
+
+    return as_evo_lines
+
+
+def get_nodes(lines):
+    nodes = set()
+
+    for line in lines:
+        FromNodeId, ToNodeId = re.findall('[0-9]+', line.strip())[:2]
+        nodes.add(FromNodeId)
+        nodes.add(ToNodeId)
+
+    return nodes
+
+
 def parse_as(file_root, file_names, skip_lines=2, num=100, thresh=500):
     raw_evo_nodes = []
     raw_evo_edges = []
@@ -27,8 +53,6 @@ def parse_as(file_root, file_names, skip_lines=2, num=100, thresh=500):
             lines = g.readlines()
 
             raw_evo_lines.append(lines)
-
-    # print(len(raw_evo_lines))
 
     evo_nodes = []
     evo_edges = []
@@ -83,8 +107,9 @@ def get_nodes_to_probe(graph, strategy, num=10):
 
 
 def evolve_graph(evo_graph, target_graph, strategy, num, damping_factor, iterations):
-    # probing nodes from evolving graph
+    # Probing nodes from evolving graph
     probing_nodes = get_nodes_to_probe(evo_graph, strategy, num)
+    assert len(probing_nodes) == num
     # print("len: ", len(probing_nodes))
 
     for pn in probing_nodes:
@@ -93,11 +118,10 @@ def evolve_graph(evo_graph, target_graph, strategy, num, damping_factor, iterati
             continue
 
         if pn.name in target_graph.node_names:
-            evo_graph.add_node(target_graph.find(pn.name))
+            evo_graph.add_node(pn, target_graph)
         else:
             evo_graph.delete_node(pn)
 
-    evo_graph.clear_pagerank()
     PageRank(evo_graph, damping_factor, iterations)
 
     if strategy == 'pr':
@@ -117,11 +141,14 @@ def PageRank_one_iter(graph, d):
 
 
 def PageRank(graph, d, iteration=100):
+    graph.clear_pagerank()
+    graph.prune()
     for i in range(iteration):
         PageRank_one_iter(graph, d)
 
 
 def l1_error(evo_graph, true_graph):
+    # assert evo_graph.node_names.sort() == true_graph.node_names.sort()
     inter_nodes = list(set(evo_graph.node_names).intersection(set(true_graph.node_names)))
     import statistics
     return statistics.mean([abs(evo_graph.find(name).pagerank - true_graph.find(name).pagerank) for name in inter_nodes])

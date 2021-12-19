@@ -32,8 +32,9 @@ class Node:
 class Graph:
     def __init__(self, as_name=""):
         self.as_name = as_name
-        # index for round-robin
+        # Index for round-robin
         self.index = 0
+        self.edges = 0
         self.nodes = []
         self.node_names = []
 
@@ -60,16 +61,32 @@ class Graph:
         for parent in node.parents:
             parent.children.remove(node)
 
-    def add_node(self, node, depth=10):
-        # print('adding', node.name)
-        for child in node.children:
+    def add_node(self, probing_node, true_graph, depth=10):
+        true_node = true_graph.find(probing_node.name)
+        for child in true_node.children:
             if child.name not in self.node_names and depth > 0:
-                self.add_node(child, depth - 1)
-            self.add_edge(node.name, child.name)
-        for parent in node.parents:
-            if parent.name not in self.node_names and depth > 0:
-                self.add_node(parent, depth - 1)
-            self.add_edge(parent.name, node.name)
+                self.add_node(child, true_graph, depth - 1)
+            # assert child.name in self.node_names
+            if self.find(child.name) not in probing_node.children:
+                self.add_edge(probing_node.name, child.name)
+        for child in probing_node.children:
+            # if child.name not in self.node_names and depth > 0:
+            #     self.add_node(child, depth - 1)
+            # assert child.name in self.node_names
+            if child.name not in true_graph.node_names or true_graph.find(child.name) not in true_node.children:
+                self.delete_edge(probing_node.name, child.name)
+
+        # for parent in node.parents:
+        #     if parent.name not in self.node_names and depth > 0:
+        #         self.add_node(parent, depth - 1)
+        #     self.add_edge(parent.name, node.name)
+
+    def delete_edge(self, parent, child):
+        parent_node = self.find(parent)
+        child_node = self.find(child)
+        parent_node.children.remove(child_node)
+        child_node.parents.remove(parent_node)
+        self.edges -= 1
 
     def add_edge(self, parent, child):
         if self.as_name == "as-733":
@@ -80,6 +97,7 @@ class Graph:
         child_node = self.find(child)
         parent_node.link_child(child_node)
         child_node.link_parent(parent_node)
+        self.edges += 1
 
     def display(self):
         for node in self.nodes:
@@ -102,7 +120,6 @@ class Graph:
 
     def normalize_pagerank(self):
         pagerank_sum = sum(node.pagerank for node in self.nodes)
-
         for node in self.nodes:
             node.pagerank /= pagerank_sum
 
@@ -117,3 +134,9 @@ class Graph:
     def get_pagerank_list(self):
         pagerank_list = np.asarray([node.pagerank for node in self.nodes], dtype='float128')
         return pagerank_list
+
+    def prune(self):
+        for node in self.nodes:
+            if not node.parents and not node.children:
+                self.nodes.remove(node)
+                self.node_names.remove(node.name)
